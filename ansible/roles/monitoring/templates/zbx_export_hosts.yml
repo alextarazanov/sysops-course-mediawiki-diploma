@@ -1,0 +1,177 @@
+zabbix_export:
+  version: '7.4'
+  host_groups:
+    - uuid: bb9402181e834f779d62a0116b7cc6cf
+      name: 'Custom host group'
+  hosts:
+    - host: Balancer
+      name: Balancer
+      templates:
+        - name: 'Hardware monitoring'
+        - name: 'Interface packets control'
+        - name: 'Zabbix agent unavailable'
+      groups:
+        - name: 'Custom host group'
+      interfaces:
+        - ip: "{{ hostvars['balancer-1']['ansible_all_ipv4_addresses'][0] }}"
+          interface_ref: if1
+      tags:
+        - tag: type
+          value: custom
+    - host: 'Balancer external'
+      name: 'Balancer external'
+      templates:
+        - name: 'Http check'
+        - name: 'Zabbix agent unavailable'
+      groups:
+        - name: 'Custom host group'
+      interfaces:
+        - interface_ref: if1
+      tags:
+        - tag: type
+          value: custom
+      macros:
+        - macro: '{$IP_CHECK}'
+          value: "{{ hostvars['balancer-1']['ansible_host'] }}"
+        - macro: '{$PORT_CHECK}'
+          value: '80'
+    - host: 'Database 1'
+      name: 'Database 1'
+      templates:
+        - name: 'Hardware monitoring'
+        - name: 'Interface packets control'
+        - name: 'Zabbix agent unavailable'
+      groups:
+        - name: 'Custom host group'
+      interfaces:
+        - ip: "{{ hostvars['db-1']['ansible_all_ipv4_addresses'][0] }}"
+          interface_ref: if1
+      tags:
+        - tag: type
+          value: custom
+    - host: 'Database 1 external'
+      name: 'Database 1 external'
+      templates:
+        - name: 'Tcp check'
+        - name: 'Zabbix agent unavailable'
+      groups:
+        - name: 'Custom host group'
+      interfaces:
+        - interface_ref: if1
+      tags:
+        - tag: type
+          value: custom
+      macros:
+        - macro: '{$IP_CHECK}'
+          value: "{{ hostvars['db-1']['ansible_all_ipv4_addresses'][0] }}"
+        - macro: '{$PORT_CHECK}'
+          value: '5432'
+    - host: 'Database 2'
+      name: 'Database 2'
+      templates:
+        - name: 'Hardware monitoring'
+        - name: 'Interface packets control'
+        - name: 'Zabbix agent unavailable'
+      groups:
+        - name: 'Custom host group'
+      interfaces:
+        - ip: "{{ hostvars['db-2']['ansible_all_ipv4_addresses'][0] }}"
+          interface_ref: if1
+      tags:
+        - tag: type
+          value: custom
+    - host: 'Database 2 external'
+      name: 'Database 2 external'
+      templates:
+        - name: 'Tcp check'
+        - name: 'Zabbix agent unavailable'
+      groups:
+        - name: 'Custom host group'
+      interfaces:
+        - interface_ref: if1
+      tags:
+        - tag: type
+          value: custom
+      macros:
+        - macro: '{$IP_CHECK}'
+          value: "{{ hostvars['db-2']['ansible_all_ipv4_addresses'][0] }}"
+        - macro: '{$PORT_CHECK}'
+          value: '5432'
+    - host: Monitoring
+      name: Monitoring
+      templates:
+        - name: 'Hardware monitoring'
+        - name: 'Interface packets control'
+        - name: 'Zabbix agent unavailable'
+      groups:
+        - name: 'Custom host group'
+      interfaces:
+        - interface_ref: if1
+      tags:
+        - tag: type
+          value: custom
+    - host: 'Wikimedia 1'
+      name: 'Wikimedia 1'
+      templates:
+        - name: 'Hardware monitoring'
+        - name: 'Interface packets control'
+        - name: 'Zabbix agent unavailable'
+      groups:
+        - name: 'Custom host group'
+      interfaces:
+        - ip: "{{ hostvars['wikimedia-1']['ansible_all_ipv4_addresses'][0] }}"
+          interface_ref: if1
+      tags:
+        - tag: type
+          value: custom
+    - host: 'Wikimedia 1 external'
+      name: 'Wikimedia 1 external'
+      templates:
+        - name: 'Http check'
+        - name: 'Zabbix agent unavailable'
+      groups:
+        - name: 'Custom host group'
+      interfaces:
+        - ip: "{{ hostvars['balancer-1']['ansible_all_ipv4_addresses'][0] }}"
+          interface_ref: if1
+      tags:
+        - tag: type
+          value: custom
+      macros:
+        - macro: '{$IP_CHECK}'
+          value: "{{ hostvars['wikimedia-1']['ansible_all_ipv4_addresses'][0] }}"
+        - macro: '{$PORT_CHECK}'
+          value: '80'
+    - host: 'Wikimedia 2'
+      name: 'Wikimedia 2'
+      templates:
+        - name: 'Hardware monitoring'
+        - name: 'Interface packets control'
+        - name: 'Zabbix agent unavailable'
+      groups:
+        - name: 'Custom host group'
+      interfaces:
+        - ip: "{{ hostvars['wikimedia-2']['ansible_all_ipv4_addresses'][0] }}"
+          interface_ref: if1
+      tags:
+        - tag: type
+          value: custom
+    - host: 'Wikimedia 2 external'
+      name: 'Wikimedia 2 external'
+      templates:
+        - name: 'Http check'
+        - name: 'Zabbix agent unavailable'
+      groups:
+        - name: 'Custom host group'
+      interfaces:
+        - ip: "{{ hostvars['balancer-1']['ansible_all_ipv4_addresses'][0] }}"
+          interface_ref: if1
+      tags:
+        - tag: type
+          value: custom
+      macros:
+        - macro: '{$IP_CHECK}'
+          value: "{{ hostvars['wikimedia-2']['ansible_all_ipv4_addresses'][0] }}"
+        - macro: '{$PORT_CHECK}'
+          value: '80'
+

@@ -1,0 +1,15 @@
+# All hidden files
+.*
+.*/
+!.gitignore
+!.terraformrc
+
+# Terraform
+terraform/key.json
+terraform/ssh_users
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/*.zip
+
+# Ansible
+ansible/ssh_keys/*

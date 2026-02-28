@@ -1,0 +1,128 @@
+---
+- name: Install postgres
+  ansible.builtin.apt:
+    name:
+      - postgresql
+      - acl
+    update_cache: true
+  become: true
+  tags:
+    - safe
+
+- name: Stop postgresql service
+  ansible.builtin.service:
+    name: postgresql
+    state: stopped
+  become: true
+  tags:
+    - safe
+
+- name: Copy postgresql hba
+  ansible.builtin.template:
+    src: pg_hba.conf
+    dest: /etc/postgresql/16/main
+  become: true
+  tags:
+    - safe
+
+- name: Copy postgresql config
+  ansible.builtin.copy:
+    src: postgresql.conf
+    dest: /etc/postgresql/16/main
+  become: true
+  tags:
+    - safe
+
+- name: Delete existing database
+  ansible.builtin.file:
+    path: /var/lib/postgresql/16/main
+    state: absent
+  become: true
+
+- name: Create empty directory for database
+  ansible.builtin.file:
+    path: /var/lib/postgresql/16/main
+    state: directory
+  become: true
+
+- name: Copy postgresql database
+  ansible.builtin.copy:
+    src: main.tar.gz
+    dest: /var/lib/postgresql/16
+  become: true
+  when: inventory_hostname == actual_main_db
+
+- name: Unpack postgresql database
+  ansible.builtin.shell:
+    cmd: tar -f main.tar.gz -xz
+    chdir: /var/lib/postgresql/16
+  become: true
+  when: inventory_hostname == actual_main_db
+
+- name: Change owner and file mode
+  ansible.builtin.file:
+    path: /var/lib/postgresql/16/main
+    mode: "0700"
+    owner: postgres
+    group: postgres
+  become: true
+
+- name: Start primary database
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+  become: true
+  when: inventory_hostname == actual_main_db
+
+- name: Copy replicas
+  ansible.builtin.expect:
+    command: pg_basebackup -h {{ hostvars[actual_main_db]['ansible_host'] }} -D /var/lib/postgresql/16/main -U syncuser -R
+    responses:
+      Password: syncuserpassword
+  become: true
+  become_user: postgres
+  no_log: true
+  when: inventory_hostname != actual_main_db
+
+- name: Change owner and file mode on secondary server
+  ansible.builtin.file:
+    path: /var/lib/postgresql/16/main
+    mode: "0700"
+    owner: postgres
+    group: postgres
+  become: true
+  when: inventory_hostname != actual_main_db
+
+- name: Start all databases
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+  become: true
+  tags:
+    - safe
+- name: Copy backup script
+  ansible.builtin.copy:
+    src: backup_copy.sh
+    dest: /home/ansible
+    mode: "755"
+  tags:
+    - safe
+
+- name: Copy backup timer
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: /etc/systemd/system
+  become: true
+  loop:
+    - backup_copy.service
+    - backup_copy.timer
+  tags:
+    - safe
+
+- name: Enable backup timer
+  ansible.builtin.service:
+    name: backup_copy.timer
+    enabled: true
+  become: true
+  tags:
+    - safe

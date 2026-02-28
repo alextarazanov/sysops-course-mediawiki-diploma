@@ -1,0 +1,59 @@
+---
+- name: Default nginx role
+  ansible.builtin.import_role:
+    name: default_nginx
+
+- name: Nginx setup for wikimedia
+  ansible.builtin.template:
+    src: wikimedia.j2
+    dest: /etc/nginx/sites-available/wikimedia
+  become: true
+  notify:
+    - Nginx reload
+
+- name: Create symbolic link for nginx
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/wikimedia
+    dest: /etc/nginx/sites-enabled/wikimedia
+    state: link
+  become: true
+  notify:
+    - Nginx reload
+
+- name: Download wikimedia
+  ansible.builtin.shell:
+    cmd: wget -O wikimedia.tar.gz {{ wikimedia_tar_gz_link }}
+
+- name: Unpack wikimedia archive
+  ansible.builtin.shell:
+    cmd: tar -f wikimedia.tar.gz -C /var/www -x
+  become: true
+
+- name: Wikimedia settings
+  ansible.builtin.template:
+    src: LocalSettings.php
+    dest: /var/www/{{ wikimedia_folder_name }}
+  become: true
+
+- name: Copy wikimedia themes
+  ansible.builtin.copy:
+    src: skins.tar.gz
+    dest: /var/www/{{ wikimedia_folder_name }}/skins
+  become: true
+
+- name: Unpack wikimedia themes
+  ansible.builtin.shell:
+    cmd: tar -f /var/www/{{ wikimedia_folder_name }}/skins/skins.tar.gz -C /var/www/{{ wikimedia_folder_name }}/skins -x
+  become: true
+
+- name: Install PHP packets
+  ansible.builtin.apt:
+    name:
+      - php-fpm
+      - php-pgsql
+      - php-intl
+      - php-gd
+      - php-xml
+      - php-mbstring
+    update_cache: true
+  become: true

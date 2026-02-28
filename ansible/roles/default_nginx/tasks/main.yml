@@ -1,0 +1,23 @@
+---
+- name: Install nginx
+  ansible.builtin.apt:
+    name:
+      - nginx
+    update_cache: true
+  become: true
+
+- name: Copy main conf file
+  ansible.builtin.copy:
+    src: nginx.conf
+    dest: /etc/nginx/nginx.conf
+  become: true
+  notify:
+    - Nginx reload
+
+- name: Remove default site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  become: true
+  notify:
+    - Nginx reload

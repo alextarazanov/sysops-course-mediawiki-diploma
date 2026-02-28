@@ -1,0 +1,218 @@
+zabbix_export:
+  version: '7.4'
+  template_groups:
+    - uuid: e22fbf34c03e488c8869302a5566f017
+      name: 'Custom template group'
+  templates:
+    - uuid: 8aa8f435a8c44e6f8c584fe67aec764c
+      template: 'Hardware monitoring'
+      name: 'Hardware monitoring'
+      groups:
+        - name: 'Custom template group'
+      items:
+        - uuid: 990c5457f6ba449eacbb2e3ae762c533
+          name: 'Cpu usage'
+          key: 'system.cpu.util[]'
+          delay: 10s
+          value_type: FLOAT
+          tags:
+            - tag: type
+              value: custom
+        - uuid: f7cdb2e9f8944a02ad71d770087832ce
+          name: 'Memory usage'
+          key: 'vm.memory.size[pused]'
+          delay: 10s
+          value_type: FLOAT
+          tags:
+            - tag: type
+              value: custom
+          triggers:
+            - uuid: f5273c1bd9f3439182ce3e56c05f5c15
+              expression: 'avg(/Hardware monitoring/vm.memory.size[pused],60s)>90'
+              name: 'High memory usage'
+              priority: WARNING
+              manual_close: 'YES'
+              tags:
+                - tag: type
+                  value: custom
+      tags:
+        - tag: type
+          value: custom
+    - uuid: ee944a7a2fee41ff9da5d4e1623258b5
+      template: 'Http check'
+      name: 'Http check'
+      templates:
+        - name: 'Tcp check'
+      groups:
+        - name: 'Custom template group'
+      items:
+        - uuid: 42a01020faa24dd9b8c978c505f1c7f0
+          name: 'Http status code check'
+          key: 'custom.httpcheck[{$IP_CHECK}]'
+          delay: 30s
+          description: 'Custom http check. 1 is error, 0 is ok'
+          timeout: 10s
+          tags:
+            - tag: type
+              value: custom
+          triggers:
+            - uuid: 5495ae38e99647598775f555ac1f583a
+              expression: 'last(/Http check/custom.httpcheck[{$IP_CHECK}],#1)=1 and last(/Http check/custom.httpcheck[{$IP_CHECK}],#2)=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'last(/Http check/custom.httpcheck[{$IP_CHECK}],#1)=0 and last(/Http check/custom.httpcheck[{$IP_CHECK}],#2)=0'
+              name: 'Service returned wrong http code'
+              priority: HIGH
+              description: 'Service returned wrong http code'
+              manual_close: 'YES'
+              tags:
+                - tag: type
+                  value: custom
+        - uuid: 3afb646b80ed49ca944fecabd899edde
+          name: 'Http time check'
+          key: 'web.page.perf[{$IP_CHECK},,80]'
+          delay: 30s
+          value_type: FLOAT
+          timeout: 10s
+          tags:
+            - tag: type
+              value: custom
+          triggers:
+            - uuid: dcdfaadbee9140f4bfe457a97e90c3e8
+              expression: 'last(/Http check/web.page.perf[{$IP_CHECK},,80],#1)=0 and last(/Http check/web.page.perf[{$IP_CHECK},,80],#2)=0 or avg(/Http check/web.page.perf[{$IP_CHECK},,80],#2)>3'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'last(/Http check/web.page.perf[{$IP_CHECK},,80],#1)<>0 and last(/Http check/web.page.perf[{$IP_CHECK},,80],#2)<>0 and avg(/Http check/web.page.perf[{$IP_CHECK},,80],#2)<3'
+              name: 'Http response time is too long'
+              priority: WARNING
+              manual_close: 'YES'
+      tags:
+        - tag: type
+          value: custom
+      macros:
+        - macro: '{$IP_CHECK}'
+          description: 'IP address to check'
+    - uuid: d9faaf2e04cc4baab2b0337f6ca7ed35
+      template: 'Interface packets control'
+      name: 'Interface packets control'
+      groups:
+        - name: 'Custom template group'
+      items:
+        - uuid: 43a285f706e24898a9cc7117f16b315a
+          name: 'Interface total packets'
+          key: 'net.if.total[eth0,packets]'
+          delay: 30s
+          preprocessing:
+            - type: CHANGE_PER_SECOND
+          tags:
+            - tag: type
+              value: custom
+          triggers:
+            - uuid: 6970a3006129435294b835f991b205f8
+              expression: 'last(/Interface packets control/net.if.total[eth0,packets],#1)>{$INTERFACE_HIGH_TCP_TRAFFIC} and last(/Interface packets control/net.if.total[eth0,packets],#2)>{$INTERFACE_HIGH_TCP_TRAFFIC}'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: |
+                last(/Interface packets control/net.if.total[eth0,packets],#1)<{$INTERFACE_HIGH_TCP_TRAFFIC} and
+                last(/Interface packets control/net.if.total[eth0,packets],#2)<{$INTERFACE_HIGH_TCP_TRAFFIC}
+              name: 'High traffic'
+              priority: WARNING
+              manual_close: 'YES'
+              tags:
+                - tag: type
+                  value: custom
+      tags:
+        - tag: type
+          value: custom
+      macros:
+        - macro: '{$INTERFACE_HIGH_TCP_TRAFFIC}'
+          value: '300'
+    - uuid: 386636ce49bd49918e71122b818f7e51
+      template: 'Tcp check'
+      name: 'Tcp check'
+      groups:
+        - name: 'Custom template group'
+      items:
+        - uuid: c1eec4b4aed74b1f878e673e4c88ebeb
+          name: 'Tcp availability'
+          key: 'net.tcp.port[{$IP_CHECK},{$PORT_CHECK}]'
+          delay: 30s
+          tags:
+            - tag: type
+              value: custom
+          triggers:
+            - uuid: 0ad8e78bd456449495a432850359d565
+              expression: 'last(/Tcp check/net.tcp.port[{$IP_CHECK},{$PORT_CHECK}],#1)=0 and last(/Tcp check/net.tcp.port[{$IP_CHECK},{$PORT_CHECK}],#2)=0'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'last(/Tcp check/net.tcp.port[{$IP_CHECK},{$PORT_CHECK}],#1)=1 and last(/Tcp check/net.tcp.port[{$IP_CHECK},{$PORT_CHECK}],#2)=1'
+              name: 'Tcp availability'
+              priority: HIGH
+              manual_close: 'YES'
+      tags:
+        - tag: type
+          value: custom
+      macros:
+        - macro: '{$IP_CHECK}'
+          description: 'Ip address to check'
+        - macro: '{$PORT_CHECK}'
+          description: 'Port to check'
+    - uuid: 88fc7f48255945c397e80cfb1c5f1ba5
+      template: 'Zabbix agent unavailable'
+      name: 'Zabbix agent unavailable'
+      groups:
+        - name: 'Custom template group'
+      items:
+        - uuid: 98ea6a65418f49e3abb523e02af04619
+          name: 'Agent availability'
+          key: agent.ping
+          delay: 30s
+          tags:
+            - tag: type
+              value: custom
+          triggers:
+            - uuid: a2a16527c5b44b3eb5f96ad45bf52ff0
+              expression: 'nodata(/Zabbix agent unavailable/agent.ping,60s)=1'
+              name: 'Zabbix agent is unavailable'
+              priority: HIGH
+              manual_close: 'YES'
+              tags:
+                - tag: type
+                  value: custom
+      tags:
+        - tag: type
+          value: custom
+  graphs:
+    - uuid: 3a9fca5fbf2440c6914ae3c6f36cd97e
+      name: 'Cpu usage'
+      yaxismax: '0'
+      graph_items:
+        - color: 1A7C11
+          calc_fnc: ALL
+          item:
+            host: 'Hardware monitoring'
+            key: 'system.cpu.util[]'
+    - uuid: 5307be93ef944f0cbfdf9d8f204c60af
+      name: 'Memory usage'
+      ymin_type_1: FIXED
+      ymax_type_1: FIXED
+      graph_items:
+        - color: 1E88E5
+          calc_fnc: ALL
+          item:
+            host: 'Hardware monitoring'
+            key: 'vm.memory.size[pused]'
+    - uuid: 7189dd3701a440da9a148a1b2fddba5c
+      name: 'Response errors'
+      graph_items:
+        - color: E53935
+          calc_fnc: ALL
+          item:
+            host: 'Http check'
+            key: 'custom.httpcheck[{$IP_CHECK}]'
+    - uuid: e9abdba33a754077aa75c0927c912698
+      name: 'Response time'
+      yaxismax: '0'
+      graph_items:
+        - color: FDD835
+          calc_fnc: ALL
+          item:
+            host: 'Http check'
+            key: 'web.page.perf[{$IP_CHECK},,80]'
+

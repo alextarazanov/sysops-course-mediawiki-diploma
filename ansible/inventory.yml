@@ -1,0 +1,37 @@
+---
+balancers:
+  hosts:
+    balancer-1:
+      ansible_host: 158.160.200.253
+
+wikimedia:
+  hosts:
+    wikimedia-1:
+      ansible_host: 192.168.0.11
+    wikimedia-2:
+      ansible_host: 192.168.0.13
+
+databases:
+  hosts:
+    db-1:
+      ansible_host: 192.168.0.10
+    db-2:
+      ansible_host: 192.168.0.4
+
+monitoring:
+  hosts:
+    monitoring-1:
+      ansible_host: 158.160.175.255
+
+all:
+  vars:
+    ansible_user: ansible
+    ansible_ssh_private_key_file: ssh_keys/ansible_id_ed25519
+    actual_main_db: db-1
+
+internal:
+  children:
+    wikimedia:
+    databases:
+  vars:
+    ansible_ssh_common_args: -o ProxyCommand="ssh -W %h:%p -q -i ssh_keys/ansible_id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ansible@158.160.200.253" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null

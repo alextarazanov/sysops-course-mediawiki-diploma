@@ -1,0 +1,6 @@
+---
+- name: Save iptables rules
+  ansible.builtin.shell:
+    cmd: iptables-save -f /etc/iptables/rules.v4
+  become: true
+  listen: Save iptables

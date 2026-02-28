@@ -1,0 +1,23 @@
+---
+- name: Default nginx role
+  ansible.builtin.import_role:
+    name: default_nginx
+
+- name: Nginx setup for balancer
+  ansible.builtin.template:
+    src: balancer.j2
+    dest: /etc/nginx/sites-enabled/balancer
+  become: true
+  notify:
+    - Nginx reload
+
+- name: Open http port
+  ansible.builtin.iptables:
+    chain: INPUT
+    destination_port: 80
+    protocol: tcp
+    jump: ACCEPT
+    comment: Open http port
+  become: true
+  notify: Save iptables
+

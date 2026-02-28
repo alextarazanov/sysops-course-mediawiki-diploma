@@ -1,0 +1,140 @@
+---
+- name: Default nginx role
+  ansible.builtin.import_role:
+    name: default_nginx
+  tags:
+    - safe
+
+- name: Open http port
+  ansible.builtin.iptables:
+    chain: INPUT
+    destination_port: 80
+    protocol: tcp
+    jump: ACCEPT
+    comment: Open http port
+  become: true
+  notify: Save iptables
+  tags:
+    - safe
+
+- name: Open zabbix active port
+  ansible.builtin.iptables:
+    chain: INPUT
+    destination_port: 10051
+    protocol: tcp
+    jump: ACCEPT
+    comment: Open zabbix active port
+  become: true
+  notify: Save iptables
+  tags:
+    - safe
+
+- name: Install packages for zabbix server
+  ansible.builtin.apt:
+    name:
+      - postgresql
+      - zabbix-server-pgsql
+      - zabbix-frontend-php
+      - php8.3-pgsql
+      - zabbix-nginx-conf
+    update_cache: true
+  become: true
+  tags:
+    - safe
+
+- name: Stop postgresql service
+  ansible.builtin.service:
+    name: postgresql
+    state: stopped
+  become: true
+
+- name: Delete existing database
+  ansible.builtin.file:
+    path: /var/lib/postgresql/16/main
+    state: absent
+  become: true
+
+- name: Copy postgresql database
+  ansible.builtin.copy:
+    src: main.tar.gz
+    dest: /var/lib/postgresql/16
+  become: true
+
+- name: Unpack postgresql database
+  ansible.builtin.shell:
+    cmd: tar -f main.tar.gz -xz
+    chdir: /var/lib/postgresql/16
+  become: true
+
+- name: Start postgresql service
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+  become: true
+  tags:
+    - safe
+
+- name: Copy nginx conf for zabbix
+  ansible.builtin.copy:
+    src: nginx.conf
+    dest: /etc/zabbix
+  become: true
+  tags:
+    - safe
+
+- name: Copy zabbix server conf
+  ansible.builtin.copy:
+    src: zabbix_server.conf
+    dest: /etc/zabbix
+    mode: "600"
+  become: true
+  tags:
+    - safe
+
+- name: Copy nginx conf for zabbix
+  ansible.builtin.copy:
+    src: zabbix.conf.php
+    dest: /etc/zabbix/web
+    mode: "644"
+  become: true
+  tags:
+    - safe
+
+- name: Restart and enable zabbix services
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: restarted
+    enabled: true
+  become: true
+  loop:
+    - zabbix-server
+    - nginx
+    - php8.3-fpm
+  tags:
+    - safe
+
+- name: Copy zabbix templates
+  ansible.builtin.copy:
+    src: zbx_export_templates.yml
+    dest: /home/ansible
+  tags:
+    - safe
+
+- name: Copy zabbix hosts
+  ansible.builtin.template:
+    src: zbx_export_hosts.yml
+    dest: /home/ansible
+  tags:
+    - safe
+
+#- name: Import zabbix templates
+#  community.zabbix.zabbix_template:
+#    http_login_user: Admin
+#    http_login_password: "14rqafzv"
+#    template_json: "{{ lookup('ansible.builtin.template', 'zbx_export_templates.xml') }}"
+#
+#- name: Import zabbix hosts
+#  community.zabbix.zabbix_template:
+#    http_login_user: Admin
+#    http_login_password: "14rqafzv"
+#    template_json: "{{ lookup('ansible.builtin.template', 'zbx_export_hosts.xml') }}"

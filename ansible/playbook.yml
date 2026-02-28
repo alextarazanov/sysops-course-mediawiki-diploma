@@ -1,0 +1,36 @@
+---
+- name: Common setup
+  hosts:
+    - all
+  roles:
+    - common
+  tags:
+    - safe
+
+- name: Wikimedia setup
+  hosts:
+    - wikimedia
+  roles:
+    - wikimedia
+  tags:
+    - safe
+
+- name: Database setup
+  hosts:
+    - databases
+  roles:
+    - database
+
+- name: Balancer setup
+  hosts:
+    - balancers
+  roles:
+    - balancer
+  tags:
+    - safe
+
+- name: Monitoring setup
+  hosts:
+    - monitoring
+  roles:
+    - monitoring

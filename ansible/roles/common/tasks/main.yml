@@ -1,0 +1,125 @@
+---
+- name: Download zabbix repository
+  ansible.builtin.shell:
+    cmd: wget https://repo.zabbix.com/zabbix/7.4/release/ubuntu/pool/main/z/zabbix-release/{{ zabbix_repo_deb }}
+    creates: "{{ zabbix_repo_deb }}"
+  vars:
+    zabbix_repo_deb: zabbix-release_latest_7.4+ubuntu24.04_all.deb
+
+- name: Install zabbix repository
+  ansible.builtin.shell:
+    cmd: dpkg -i zabbix-release_latest_7.4+ubuntu24.04_all.deb && touch {{ installed_flag }}
+    creates: "{{ installed_flag }}"
+  become: true
+  vars:
+    installed_flag: zabbix_repo_installed
+
+- name: Apt update and upgrade
+  ansible.builtin.apt:
+    update_cache: true
+    upgrade: yes
+  become: true
+
+- name: Install common packets
+  ansible.builtin.apt:
+    name:
+      - iptables-persistent
+      - zabbix-agent2
+      - zabbix-agent2-plugin-mongodb
+      - zabbix-agent2-plugin-mssql
+      - zabbix-agent2-plugin-postgresql
+    update_cache: true
+  become: true
+
+- name: Open ssh port
+  ansible.builtin.iptables:
+    chain: INPUT
+    destination_port: 22
+    protocol: tcp
+    jump: ACCEPT
+    comment: Open ssh port
+  become: true
+  notify: Save iptables
+
+- name: Open all INPUT established connections
+  ansible.builtin.iptables:
+    chain: INPUT
+    ctstate: 
+      - ESTABLISHED
+      - RELATED
+    jump: ACCEPT
+    comment: Open all INPUT established connections
+  become: true
+  notify: Save iptables
+
+- name: Open all local INPUT
+  ansible.builtin.iptables:
+    chain: INPUT
+    in_interface: lo
+    jump: ACCEPT
+    comment: Open all local INPUT
+  become: true
+  notify: Save iptables
+
+- name: Open all internal network INPUT
+  ansible.builtin.iptables:
+    chain: INPUT
+    source: 192.168.0.0/28
+    jump: ACCEPT
+    comment: Open all internal network INPUT
+  become: true
+  notify: Save iptables
+
+- name: Open zabbix passive port
+  ansible.builtin.iptables:
+    chain: INPUT
+    destination_port: 10050
+    protocol: tcp
+    jump: ACCEPT
+    comment: Open zabbix passive port
+  become: true
+  notify: Save iptables
+
+- name: Set the policy for the INPUT chain to DROP
+  ansible.builtin.iptables:
+    chain: INPUT
+    policy: DROP
+  become: true
+  notify: Save iptables
+
+- name: Set MSK timezone
+  ansible.builtin.shell:
+    cmd: timedatectl set-timezone Europe/Moscow
+  become: true
+  when: ansible_date_time['tz'] != 'MSK'
+
+- name: Copy zabbix agent conf
+  ansible.builtin.template:
+    src: zabbix_agent2.conf
+    dest: /etc/zabbix
+    mode: "644"
+  become: true
+
+- name: Create directories for scripts for zabbix agent
+  ansible.builtin.file:
+    path: /usr/local/zabbix/scripts
+    state: directory
+  become: true
+
+- name: Copy user scipts for zabbix agent
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: /usr/local/zabbix/scripts
+    mode: "755"
+  become: true
+  loop:
+    - check_ip.py
+    - define_error.py
+    - get_http_metric.sh
+
+- name: Restart and enable zabbix agent
+  ansible.builtin.service:
+    name: zabbix-agent2
+    state: restarted
+    enabled: true
+  become: true
